@@ -1,16 +1,10 @@
 #!/bin/bash
 
-echo "--------------- 배포 시작 ---------------"
+echo "--------------- 서버 배포 시작 -----------------"
 
-cd /home/ubuntu/server || exit 1
+docker stop mountaincc-server || true
+docker rm mountaincc-server || true
+docker pull 058264467328.dkr.ecr.ap-northeast-2.amazonaws.com/mountaincc-server:latest
+docker run -d --name mountaincc-server -p 8080:8080 058264467328.dkr.ecr.ap-northeast-2.amazonaws.com/mountaincc-server:latest
 
-# 기존 컨테이너 정리
-docker compose down --remove-orphans
-
-# 최신 이미지 pull
-docker compose pull
-
-# 주석 처리되지 않은 모든 서비스 실행
-docker compose up -d
-
-echo "--------------- 배포 완료 ---------------"
+echo "--------------- 서버 배포 끝 -----------------"
