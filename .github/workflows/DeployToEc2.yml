@@ -42,7 +42,7 @@ jobs:
         run: docker tag mountaincc-server ${{ steps.login-ecr.outputs.registry }}/mountaincc-server:latest
 
       - name: ECR에 Docker 이미지 Push
-        run: docker push ${{ steps.login-ecr.outputs.registry }}/girin-server:latest
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/mountaincc-server:latest
 
       - name: 압축
         run: tar -czvf $GITHUB_SHA.tar.gz appspec.yml scripts docker-compose.yml
