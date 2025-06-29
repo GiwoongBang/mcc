@@ -3,7 +3,7 @@ package kr.co.mountaincc.users.oauth2;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kr.co.mountaincc.users.jwt.MccJwtUtil;
+import kr.co.mountaincc.users.jwt.JwtUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -18,7 +18,7 @@ import java.util.Iterator;
 @Component
 public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final MccJwtUtil mccJwtUtil;
+    private final JwtUtil jwtUtil;
 
     @Value("${spring.jwt.access.expiration}")
     private int JWT_ACCESS_EXPIRATION_TIME;
@@ -38,8 +38,8 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private static final String REDIRECT_URL = "https://www.mountaincc.co.kr";
 
-    public CustomSuccessHandler(MccJwtUtil mccJwtUtil) {
-        this.mccJwtUtil = mccJwtUtil;
+    public CustomSuccessHandler(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
@@ -52,14 +52,14 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String nickname = customUserDetails.getName();
         String profileImg = customUserDetails.getProfileImg();
 
-        String accessToken = mccJwtUtil.generateAccessToken(username, ACCESS_CATEGORY, role, nickname, profileImg);
-        String refreshToken = mccJwtUtil.generateRefreshToken(username, REFRESH_CATEGORY, role, nickname, profileImg);
+        String accessToken = jwtUtil.generateAccessToken(username, ACCESS_CATEGORY, role, nickname, profileImg);
+        String refreshToken = jwtUtil.generateRefreshToken(username, REFRESH_CATEGORY, role, nickname, profileImg);
 
-        Date refreshTokenExpiration = mccJwtUtil.getExpiration(refreshToken);
-        mccJwtUtil.saveRefreshToken(username, refreshToken, refreshTokenExpiration);
+        Date refreshTokenExpiration = jwtUtil.getExpiration(refreshToken);
+        jwtUtil.saveRefreshToken(username, refreshToken, refreshTokenExpiration);
 
-        String accessHeader = mccJwtUtil.createSetCookieHeader(AUTHORIZATION, BEARER_PREFIX + accessToken, JWT_ACCESS_EXPIRATION_TIME / 1000);
-        String refreshHeader = mccJwtUtil.createSetCookieHeader(REFRESH_TOKEN, BEARER_PREFIX + refreshToken, JWT_REFRESH_EXPIRATION_TIME / 1000);
+        String accessHeader = jwtUtil.createSetCookieHeader(AUTHORIZATION, BEARER_PREFIX + accessToken, JWT_ACCESS_EXPIRATION_TIME / 1000);
+        String refreshHeader = jwtUtil.createSetCookieHeader(REFRESH_TOKEN, BEARER_PREFIX + refreshToken, JWT_REFRESH_EXPIRATION_TIME / 1000);
 
         response.addHeader("Set-Cookie", accessHeader);
         response.addHeader("Set-Cookie", refreshHeader);

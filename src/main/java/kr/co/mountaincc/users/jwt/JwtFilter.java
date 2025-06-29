@@ -17,7 +17,7 @@ import java.io.IOException;
 
 public class JwtFilter extends OncePerRequestFilter {
 
-    private final MccJwtUtil mccJwtUtil;
+    private final JwtUtil jwtUtil;
 
     private static final String AUTHORIZATION = "Authorization";
 
@@ -31,8 +31,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private static final String STATUS_EXPIRED = "EXPIRED";
 
-    public JwtFilter(MccJwtUtil mccJwtUtil) {
-        this.mccJwtUtil = mccJwtUtil;
+    public JwtFilter(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
@@ -61,7 +61,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String accessToken = authorization.substring(BEARER_PREFIX.length());
         try {
-            mccJwtUtil.isExpired(accessToken);
+            jwtUtil.isExpired(accessToken);
         } catch (ExpiredJwtException e) {
             response.setHeader(TOKEN_STATUS_HEADER, STATUS_EXPIRED);
             filterChain.doFilter(request, response);
@@ -69,17 +69,17 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        String category = mccJwtUtil.getCategory(accessToken);
+        String category = jwtUtil.getCategory(accessToken);
         if (category == null || !category.equals(ACCESS_CATEGORY)) {
             filterChain.doFilter(request, response);
 
             return;
         }
 
-        String username = mccJwtUtil.getUsername(accessToken);
-        String role = mccJwtUtil.getRole(accessToken);
-        String nickname = mccJwtUtil.getNickname(accessToken);
-        String profileImg = mccJwtUtil.getProfileImg(accessToken);
+        String username = jwtUtil.getUsername(accessToken);
+        String role = jwtUtil.getRole(accessToken);
+        String nickname = jwtUtil.getNickname(accessToken);
+        String profileImg = jwtUtil.getProfileImg(accessToken);
 
         UserDto userDto = UserDto.builder()
                 .username(username)

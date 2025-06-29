@@ -9,7 +9,7 @@ public class HelloController {
     @GetMapping("/")
     public String hello() {
 
-        return "Girin Private Server | Contact: bku6713@gmail.com";
+        return "MCC Private Server | Contact: savannah.girin@gmail.com";
     }
 
     @GetMapping("/healthcheck")

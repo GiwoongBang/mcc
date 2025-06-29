@@ -16,7 +16,7 @@ import java.io.IOException;
 
 public class CustomLogoutFilter extends GenericFilterBean {
 
-    private final MccJwtUtil mccJwtUtil;
+    private final JwtUtil jwtUtil;
 
     private final RefreshTokenRepository refreshTokenRepository;
 
@@ -28,8 +28,8 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
     private static final String BEARER_PREFIX = "BEARER_";
 
-    public CustomLogoutFilter(MccJwtUtil mccJwtUtil, RefreshTokenRepository refreshTokenRepository) {
-        this.mccJwtUtil = mccJwtUtil;
+    public CustomLogoutFilter(JwtUtil jwtUtil, RefreshTokenRepository refreshTokenRepository) {
+        this.jwtUtil = jwtUtil;
         this.refreshTokenRepository = refreshTokenRepository;
     }
 
@@ -75,14 +75,14 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
         String refreshToken = authorization.substring(BEARER_PREFIX.length());
         try {
-            mccJwtUtil.isExpired(refreshToken);
+            jwtUtil.isExpired(refreshToken);
         } catch (ExpiredJwtException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 
             return;
         }
 
-        String category = mccJwtUtil.getCategory(refreshToken);
+        String category = jwtUtil.getCategory(refreshToken);
         if (category == null || !category.equals(REFRESH_CATEGORY)) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 

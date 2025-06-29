@@ -7,7 +7,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.co.mountaincc.maps.dtos.userDtos.UserDto;
-import kr.co.mountaincc.users.jwt.MccJwtUtil;
+import kr.co.mountaincc.users.jwt.JwtUtil;
 import kr.co.mountaincc.users.oauth2.CustomOAuth2UserEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -18,7 +18,7 @@ import java.io.IOException;
 
 public class SuperTokenFilter extends OncePerRequestFilter {
 
-    private final MccJwtUtil mccJwtUtil;
+    private final JwtUtil jwtUtil;
 
     private static final String ACCESS_CATEGORY = "access";
 
@@ -34,8 +34,8 @@ public class SuperTokenFilter extends OncePerRequestFilter {
 
     private static final String REQUIRED_ROLE = "ROLE_ADMIN";
 
-    public SuperTokenFilter(MccJwtUtil mccJwtUtil) {
-        this.mccJwtUtil = mccJwtUtil;
+    public SuperTokenFilter(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
@@ -66,15 +66,15 @@ public class SuperTokenFilter extends OncePerRequestFilter {
 
         if (token != null) {
             try {
-                mccJwtUtil.isExpired(token);
+                jwtUtil.isExpired(token);
 
-                String category = mccJwtUtil.getCategory(token);
-                String role = mccJwtUtil.getRole(token);
+                String category = jwtUtil.getCategory(token);
+                String role = jwtUtil.getRole(token);
 
                 if (ACCESS_CATEGORY.equals(category) && REQUIRED_ROLE.equals(role)) {
-                    String username = mccJwtUtil.getUsername(token);
-                    String nickname = mccJwtUtil.getNickname(token);
-                    String profileImg = mccJwtUtil.getProfileImg(token);
+                    String username = jwtUtil.getUsername(token);
+                    String nickname = jwtUtil.getNickname(token);
+                    String profileImg = jwtUtil.getProfileImg(token);
 
                     UserDto userDto = UserDto.builder()
                             .username(username)

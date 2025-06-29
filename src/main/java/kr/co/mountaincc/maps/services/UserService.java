@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import kr.co.mountaincc.maps.dtos.userDtos.CheckAuthResponseDto;
 import kr.co.mountaincc.maps.entities.UserEntity;
 import kr.co.mountaincc.maps.repositories.UserRepository;
-import kr.co.mountaincc.users.jwt.MccJwtUtil;
+import kr.co.mountaincc.users.jwt.JwtUtil;
 import kr.co.mountaincc.users.jwt.RefreshTokenRepository;
 import kr.co.mountaincc.users.oauth2.CustomOAuth2UserEntity;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ public class UserService {
 
     private final RefreshTokenRepository refreshTokenRepository;
 
-    private final MccJwtUtil mccJwtUtil;
+    private final JwtUtil jwtUtil;
 
     @Value("${spring.jwt.access.expiration}")
     private int JWT_ACCESS_EXPIRATION_TIME;
@@ -80,17 +80,17 @@ public class UserService {
 
         String accessToken = authorization.substring(BEARER_PREFIX.length());
         try {
-            if (mccJwtUtil.isExpired(accessToken)) {
+            if (jwtUtil.isExpired(accessToken)) {
 
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
 
             return ResponseEntity.ok(
                     new CheckAuthResponseDto(
-                            mccJwtUtil.getUsername(accessToken),
-                            mccJwtUtil.getNickname(accessToken),
-                            mccJwtUtil.getRole(accessToken),
-                            mccJwtUtil.getProfileImg(accessToken)
+                            jwtUtil.getUsername(accessToken),
+                            jwtUtil.getNickname(accessToken),
+                            jwtUtil.getRole(accessToken),
+                            jwtUtil.getProfileImg(accessToken)
                     )
             );
 
@@ -123,13 +123,13 @@ public class UserService {
 
         String refreshToken = authorization.substring(BEARER_PREFIX.length());
         try {
-            mccJwtUtil.isExpired(refreshToken);
+            jwtUtil.isExpired(refreshToken);
         } catch (ExpiredJwtException e) {
 
             return new ResponseEntity<>("Refresh Token is expired", HttpStatus.BAD_REQUEST);
         }
 
-        String category = mccJwtUtil.getCategory(refreshToken);
+        String category = jwtUtil.getCategory(refreshToken);
         if (category == null || !category.equals(REFRESH_CATEGORY)) {
 
             return new ResponseEntity<>("Invalid Refresh Token", HttpStatus.BAD_REQUEST);
@@ -141,21 +141,21 @@ public class UserService {
             return new ResponseEntity<>("Invalid Refresh Token", HttpStatus.BAD_REQUEST);
         }
 
-        String username = mccJwtUtil.getUsername(refreshToken);
-        String role = mccJwtUtil.getRole(refreshToken);
-        String nickname = mccJwtUtil.getNickname(refreshToken);
-        String profileImg = mccJwtUtil.getProfileImg(refreshToken);
+        String username = jwtUtil.getUsername(refreshToken);
+        String role = jwtUtil.getRole(refreshToken);
+        String nickname = jwtUtil.getNickname(refreshToken);
+        String profileImg = jwtUtil.getProfileImg(refreshToken);
 
-        String newAccessToken = mccJwtUtil.generateAccessToken(username, ACCESS_CATEGORY, role, nickname, profileImg);
-        String newRefreshToken = mccJwtUtil.generateRefreshToken(username, REFRESH_CATEGORY, role, nickname, profileImg);
+        String newAccessToken = jwtUtil.generateAccessToken(username, ACCESS_CATEGORY, role, nickname, profileImg);
+        String newRefreshToken = jwtUtil.generateRefreshToken(username, REFRESH_CATEGORY, role, nickname, profileImg);
 
         refreshTokenRepository.deleteByRefreshToken(refreshToken);
 
-        Date newRefreshTokenExpiration = mccJwtUtil.getExpiration(newRefreshToken);
-        mccJwtUtil.saveRefreshToken(username, newRefreshToken, newRefreshTokenExpiration);
+        Date newRefreshTokenExpiration = jwtUtil.getExpiration(newRefreshToken);
+        jwtUtil.saveRefreshToken(username, newRefreshToken, newRefreshTokenExpiration);
 
-        String accessHeader = mccJwtUtil.createSetCookieHeader(AUTHORIZATION, BEARER_PREFIX + newAccessToken, JWT_ACCESS_EXPIRATION_TIME / 1000);
-        String refreshHeader = mccJwtUtil.createSetCookieHeader(REFRESH_TOKEN, BEARER_PREFIX + newRefreshToken, JWT_REFRESH_EXPIRATION_TIME / 1000);
+        String accessHeader = jwtUtil.createSetCookieHeader(AUTHORIZATION, BEARER_PREFIX + newAccessToken, JWT_ACCESS_EXPIRATION_TIME / 1000);
+        String refreshHeader = jwtUtil.createSetCookieHeader(REFRESH_TOKEN, BEARER_PREFIX + newRefreshToken, JWT_REFRESH_EXPIRATION_TIME / 1000);
 
         response.addHeader("Set-Cookie", accessHeader);
         response.addHeader("Set-Cookie", refreshHeader);

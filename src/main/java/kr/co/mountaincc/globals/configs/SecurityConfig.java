@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import kr.co.mountaincc.globals.filters.SuperTokenFilter;
 import kr.co.mountaincc.users.jwt.CustomLogoutFilter;
 import kr.co.mountaincc.users.jwt.JwtFilter;
-import kr.co.mountaincc.users.jwt.MccJwtUtil;
+import kr.co.mountaincc.users.jwt.JwtUtil;
 import kr.co.mountaincc.users.jwt.RefreshTokenRepository;
 import kr.co.mountaincc.users.oauth2.CustomOAuth2UserService;
 import kr.co.mountaincc.users.oauth2.CustomSuccessHandler;
@@ -34,17 +34,17 @@ public class SecurityConfig {
 
     private final CustomSuccessHandler customSuccessHandler;
 
-    private final MccJwtUtil mccJwtUtil;
+    private final JwtUtil jwtUtil;
 
     @Value("${spring.jwt.super.secret}")
     private String SUPER_TOKEN;
 
     public SecurityConfig(CustomOAuth2UserService customOAuth2UserService,
                           CustomSuccessHandler customSuccessHandler,
-                          MccJwtUtil mccJwtUtil) {
+                          JwtUtil jwtUtil) {
         this.customOAuth2UserService = customOAuth2UserService;
         this.customSuccessHandler = customSuccessHandler;
-        this.mccJwtUtil = mccJwtUtil;
+        this.jwtUtil = jwtUtil;
     }
 
     @Bean
@@ -92,13 +92,13 @@ public class SecurityConfig {
         );
 
         http
-                .addFilterBefore(new SuperTokenFilter(mccJwtUtil), LogoutFilter.class);
+                .addFilterBefore(new SuperTokenFilter(jwtUtil), LogoutFilter.class);
 
         http
-                .addFilterBefore(new CustomLogoutFilter(mccJwtUtil, refreshTokenRepository), LogoutFilter.class);
+                .addFilterBefore(new CustomLogoutFilter(jwtUtil, refreshTokenRepository), LogoutFilter.class);
 
         http
-                .addFilterAfter(new JwtFilter(mccJwtUtil), OAuth2LoginAuthenticationFilter.class);
+                .addFilterAfter(new JwtFilter(jwtUtil), OAuth2LoginAuthenticationFilter.class);
 
         http
                 .oauth2Login((oauth2) -> oauth2

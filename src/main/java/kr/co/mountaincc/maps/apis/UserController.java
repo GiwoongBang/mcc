@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.co.mountaincc.maps.dtos.userDtos.CheckAuthResponseDto;
 import kr.co.mountaincc.maps.services.UserService;
-import kr.co.mountaincc.users.jwt.MccJwtUtil;
+import kr.co.mountaincc.users.jwt.JwtUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "User API", description = "User API 입니다.")
 @RequestMapping("/mcc/users")
 @RestController
-public class MccUserController {
+public class UserController {
 
-    private final MccJwtUtil mccJwtUtil;
+    private final JwtUtil jwtUtil;
 
     private final UserService userService;
 
@@ -31,8 +31,8 @@ public class MccUserController {
 
     private static final int SUPER_TOKEN_EXPIRATION_SECONDS = 60 * 60 * 12; // 12시간
 
-    public MccUserController(MccJwtUtil mccJwtUtil, UserService userService) {
-        this.mccJwtUtil = mccJwtUtil;
+    public UserController(JwtUtil jwtUtil, UserService userService) {
+        this.jwtUtil = jwtUtil;
         this.userService = userService;
     }
 
@@ -64,10 +64,10 @@ public class MccUserController {
             return new ResponseEntity<>("Invalid secretKey", HttpStatus.UNAUTHORIZED);
         }
 
-        String superToken = mccJwtUtil.generateSuperToken();
+        String superToken = jwtUtil.generateSuperToken();
         String fullToken = BEARER_PREFIX + superToken;
 
-        String superHeader = mccJwtUtil.createSetCookieHeader(SUPER_TOKEN_COOKIE, fullToken, SUPER_TOKEN_EXPIRATION_SECONDS);
+        String superHeader = jwtUtil.createSetCookieHeader(SUPER_TOKEN_COOKIE, fullToken, SUPER_TOKEN_EXPIRATION_SECONDS);
 
         response.setHeader(HttpHeaders.SET_COOKIE, superHeader);
         response.setHeader(SUPER_TOKEN_COOKIE, fullToken);

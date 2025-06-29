@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
-public class MccJwtUtil {
+public class JwtUtil {
 
     @Value("${spring.jwt.access.expiration}")
     private int JWT_ACCESS_EXPIRATION_TIME;
@@ -26,8 +26,8 @@ public class MccJwtUtil {
 
     private final RefreshTokenRepository refreshTokenRepository;
 
-    public MccJwtUtil(@Value("${spring.jwt.secret}") String secret,
-                      RefreshTokenRepository refreshTokenRepository) {
+    public JwtUtil(@Value("${spring.jwt.secret}") String secret,
+                   RefreshTokenRepository refreshTokenRepository) {
         this.secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8),
                 Jwts.SIG.HS256.key().build().getAlgorithm());
         this.refreshTokenRepository = refreshTokenRepository;
