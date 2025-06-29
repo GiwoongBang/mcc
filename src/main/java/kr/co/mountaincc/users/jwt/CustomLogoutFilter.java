@@ -8,6 +8,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
 
@@ -18,6 +19,14 @@ public class CustomLogoutFilter extends GenericFilterBean {
     private final MccJwtUtil mccJwtUtil;
 
     private final RefreshTokenRepository refreshTokenRepository;
+
+    private static final String AUTHORIZATION = "Authorization";
+
+    private static final String REFRESH_TOKEN = "Refresh-Token";
+
+    private static final String REFRESH_CATEGORY = "refresh";
+
+    private static final String BEARER_PREFIX = "BEARER_";
 
     public CustomLogoutFilter(MccJwtUtil mccJwtUtil, RefreshTokenRepository refreshTokenRepository) {
         this.mccJwtUtil = mccJwtUtil;
@@ -50,20 +59,21 @@ public class CustomLogoutFilter extends GenericFilterBean {
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                if (cookie.getName().equals("Refresh-Token")) {
+                if (cookie.getName().equals(REFRESH_TOKEN)) {
                     authorization = cookie.getValue();
+
                     break;
                 }
             }
         }
 
-        if (authorization == null || !authorization.startsWith("BEARER_")) {
+        if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 
             return;
         }
 
-        String refreshToken = authorization.substring(7);
+        String refreshToken = authorization.substring(BEARER_PREFIX.length());
         try {
             mccJwtUtil.isExpired(refreshToken);
         } catch (ExpiredJwtException e) {
@@ -73,7 +83,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
         }
 
         String category = mccJwtUtil.getCategory(refreshToken);
-        if (category == null || !category.equals("refresh")) {
+        if (category == null || !category.equals(REFRESH_CATEGORY)) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 
             return;
@@ -88,8 +98,8 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
         refreshTokenRepository.deleteByRefreshToken(refreshToken);
 
-        deleteCookie(response, "Authorization");
-        deleteCookie(response, "Refresh-Token");
+        deleteCookie(response, AUTHORIZATION);
+        deleteCookie(response, REFRESH_TOKEN);
 
         SecurityContextHolder.clearContext();
 
@@ -108,12 +118,14 @@ public class CustomLogoutFilter extends GenericFilterBean {
     }
 
     private void deleteCookie(HttpServletResponse response, String key) {
-        String cookie = key + "=;" +
-                " Path=/;" +
-                " Max-Age=0;" +
-                " HttpOnly;" +
-                " Secure;" +
-                " SameSite=None";
+        String cookie = ResponseCookie.from(key, "")
+                .path("/")
+                .maxAge(0)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .build()
+                .toString();
 
         response.addHeader("Set-Cookie", cookie);
     }

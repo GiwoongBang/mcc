@@ -19,19 +19,31 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final MccJwtUtil mccJwtUtil;
 
+    private static final String AUTHORIZATION = "Authorization";
+
+    private static final String BEARER_PREFIX = "BEARER_";
+
+    private static final String ACCESS_CATEGORY = "access";
+
+    private static final String TOKEN_STATUS_HEADER = "Token-Status";
+
+    private static final String STATUS_MISSING = "MISSING";
+
+    private static final String STATUS_EXPIRED = "EXPIRED";
+
     public JwtFilter(MccJwtUtil mccJwtUtil) {
         this.mccJwtUtil = mccJwtUtil;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String authorization = request.getHeader("Authorization");
+        String authorization = request.getHeader(AUTHORIZATION);
 
-        if (authorization == null || !authorization.startsWith("BEARER_")) {
+        if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
             Cookie[] cookies = request.getCookies();
             if (cookies != null) {
                 for (Cookie cookie : cookies) {
-                    if (cookie.getName().equals("Authorization")) {
+                    if (cookie.getName().equals(AUTHORIZATION)) {
                         authorization = cookie.getValue();
 
                         break;
@@ -40,25 +52,25 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
 
-        if (authorization == null || !authorization.startsWith("BEARER_")) {
-            response.setHeader("Token-Status", "MISSING");
+        if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
+            response.setHeader(TOKEN_STATUS_HEADER, STATUS_MISSING);
             filterChain.doFilter(request, response);
 
             return;
         }
 
-        String accessToken = authorization.substring(7);
+        String accessToken = authorization.substring(BEARER_PREFIX.length());
         try {
             mccJwtUtil.isExpired(accessToken);
         } catch (ExpiredJwtException e) {
-            response.setHeader("Token-Status", "EXPIRED");
+            response.setHeader(TOKEN_STATUS_HEADER, STATUS_EXPIRED);
             filterChain.doFilter(request, response);
 
             return;
         }
 
         String category = mccJwtUtil.getCategory(accessToken);
-        if (category == null || !category.equals("access")) {
+        if (category == null || !category.equals(ACCESS_CATEGORY)) {
             filterChain.doFilter(request, response);
 
             return;

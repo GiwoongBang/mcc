@@ -20,6 +20,20 @@ public class SuperTokenFilter extends OncePerRequestFilter {
 
     private final MccJwtUtil mccJwtUtil;
 
+    private static final String ACCESS_CATEGORY = "access";
+
+    private static final String BEARER_PREFIX = "BEARER_";
+
+    private static final String SUPER_TOKEN_COOKIE = "Super-Token";
+
+    private static final String TOKEN_STATUS_HEADER = "Token-Status";
+
+    private static final String STATUS_EXPIRED = "EXPIRED";
+
+    private static final String STATUS_INVALID = "INVALID";
+
+    private static final String REQUIRED_ROLE = "ROLE_ADMIN";
+
     public SuperTokenFilter(MccJwtUtil mccJwtUtil) {
         this.mccJwtUtil = mccJwtUtil;
     }
@@ -33,20 +47,21 @@ public class SuperTokenFilter extends OncePerRequestFilter {
 
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
-                if ("Super-Token".equals(cookie.getName())) {
+                if (SUPER_TOKEN_COOKIE.equals(cookie.getName())) {
                     token = cookie.getValue();
+
                     break;
                 }
             }
         }
 
         if (token == null) {
-            token = request.getHeader("Super-Token");
+            token = request.getHeader(SUPER_TOKEN_COOKIE);
         }
 
 
-        if (token != null && token.startsWith("BEARER_")) {
-            token = token.substring(7);
+        if (token != null && token.startsWith(BEARER_PREFIX)) {
+            token = token.substring(BEARER_PREFIX.length());
         }
 
         if (token != null) {
@@ -56,7 +71,7 @@ public class SuperTokenFilter extends OncePerRequestFilter {
                 String category = mccJwtUtil.getCategory(token);
                 String role = mccJwtUtil.getRole(token);
 
-                if ("access".equals(category) && "ROLE_ADMIN".equals(role)) {
+                if (ACCESS_CATEGORY.equals(category) && REQUIRED_ROLE.equals(role)) {
                     String username = mccJwtUtil.getUsername(token);
                     String nickname = mccJwtUtil.getNickname(token);
                     String profileImg = mccJwtUtil.getProfileImg(token);
@@ -74,9 +89,9 @@ public class SuperTokenFilter extends OncePerRequestFilter {
                 }
 
             } catch (ExpiredJwtException e) {
-                response.setHeader("Token-Status", "EXPIRED");
+                response.setHeader(TOKEN_STATUS_HEADER, STATUS_EXPIRED);
             } catch (Exception e) {
-                response.setHeader("Token-Status", "INVALID");
+                response.setHeader(TOKEN_STATUS_HEADER, STATUS_INVALID);
             }
         }
 

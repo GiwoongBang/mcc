@@ -2,6 +2,7 @@ package kr.co.mountaincc.users.jwt;
 
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -110,18 +111,21 @@ public class MccJwtUtil {
     }
 
     public String createSetCookieHeader(String key, String value, int maxAge) {
-        return key + "=" + value +
-                "; Path=/" +
-                "; Max-Age=" + maxAge +
-                "; HttpOnly" +
-                "; Secure" +
-                "; SameSite=None";
+
+        return ResponseCookie.from(key, value)
+                .path("/")
+                .maxAge(maxAge)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .build()
+                .toString();
     }
 
     public void saveRefreshToken(String username, String refreshToken, Date expiration) {
 
         Boolean isExist = refreshTokenRepository.existsByUsername(username);
-        if(isExist) refreshTokenRepository.deleteAllByUsername(username);
+        if (isExist) refreshTokenRepository.deleteAllByUsername(username);
 
         RefreshTokenEntity refreshTokenEntity = RefreshTokenEntity.builder()
                 .username(username)

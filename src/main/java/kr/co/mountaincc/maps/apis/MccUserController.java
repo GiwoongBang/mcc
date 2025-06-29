@@ -8,6 +8,7 @@ import kr.co.mountaincc.maps.dtos.userDtos.CheckAuthResponseDto;
 import kr.co.mountaincc.maps.services.UserService;
 import kr.co.mountaincc.users.jwt.MccJwtUtil;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,12 @@ public class MccUserController {
 
     @Value("${spring.jwt.super.secret}")
     private String superSecret;
+
+    private static final String BEARER_PREFIX = "BEARER_";
+
+    private static final String SUPER_TOKEN_COOKIE = "Super-Token";
+
+    private static final int SUPER_TOKEN_EXPIRATION_SECONDS = 60 * 60 * 12; // 12시간
 
     public MccUserController(MccJwtUtil mccJwtUtil, UserService userService) {
         this.mccJwtUtil = mccJwtUtil;
@@ -58,12 +65,12 @@ public class MccUserController {
         }
 
         String superToken = mccJwtUtil.generateSuperToken();
-        String fullToken = "BEARER_" + superToken;
+        String fullToken = BEARER_PREFIX + superToken;
 
-        String superHeader = mccJwtUtil.createSetCookieHeader("Super-Token", fullToken, 60 * 60 * 12);
-        response.setHeader("Set-Cookie", superHeader);
+        String superHeader = mccJwtUtil.createSetCookieHeader(SUPER_TOKEN_COOKIE, fullToken, SUPER_TOKEN_EXPIRATION_SECONDS);
 
-        response.setHeader("Super-Token", fullToken);
+        response.setHeader(HttpHeaders.SET_COOKIE, superHeader);
+        response.setHeader(SUPER_TOKEN_COOKIE, fullToken);
 
         return new ResponseEntity<>("SUPER TOKEN GENERATED", HttpStatus.OK);
     }

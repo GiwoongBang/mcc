@@ -13,6 +13,7 @@ import kr.co.mountaincc.users.oauth2.CustomOAuth2UserEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,10 +37,21 @@ public class UserService {
     @Value("${spring.jwt.refresh.expiration}")
     private int JWT_REFRESH_EXPIRATION_TIME;
 
+    private static final String AUTHORIZATION = "Authorization";
+
+    private static final String REFRESH_TOKEN = "Refresh-Token";
+
+    private static final String ACCESS_CATEGORY = "access";
+
+    private static final String REFRESH_CATEGORY = "refresh";
+
+    private static final String BEARER_PREFIX = "BEARER_";
+
     public CustomOAuth2UserEntity getOAuth2UserInfo() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomOAuth2UserEntity)) {
+
             throw new IllegalArgumentException("유저가 존재하지 않습니다.");
         }
         CustomOAuth2UserEntity customUser = (CustomOAuth2UserEntity) authentication.getPrincipal();
@@ -53,20 +65,23 @@ public class UserService {
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                if (cookie.getName().equals("Authorization")) {
+                if (cookie.getName().equals(AUTHORIZATION)) {
                     authorization = cookie.getValue();
+
                     break;
                 }
             }
         }
 
-        if (authorization == null || !authorization.startsWith("BEARER_")) {
+        if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
+
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        String accessToken = authorization.substring(7);
+        String accessToken = authorization.substring(BEARER_PREFIX.length());
         try {
             if (mccJwtUtil.isExpired(accessToken)) {
+
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
 
@@ -80,18 +95,19 @@ public class UserService {
             );
 
         } catch (Exception e) {
+
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 
     public ResponseEntity<String> reissueToken(HttpServletRequest request, HttpServletResponse response) {
-        String authorization = request.getHeader("Refresh-Token");
+        String authorization = request.getHeader(REFRESH_TOKEN);
 
-        if (authorization == null || !authorization.startsWith("BEARER_")) {
+        if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
             Cookie[] cookies = request.getCookies();
             if (cookies != null) {
                 for (Cookie cookie : cookies) {
-                    if (cookie.getName().equals("Refresh-Token")) {
+                    if (cookie.getName().equals(REFRESH_TOKEN)) {
                         authorization = cookie.getValue();
 
                         break;
@@ -100,12 +116,12 @@ public class UserService {
             }
         }
 
-        if (authorization == null | !authorization.startsWith("BEARER_")) {
+        if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
 
             return new ResponseEntity<>("Refresh Token is NULL", HttpStatus.BAD_REQUEST);
         }
 
-        String refreshToken = authorization.substring(7);
+        String refreshToken = authorization.substring(BEARER_PREFIX.length());
         try {
             mccJwtUtil.isExpired(refreshToken);
         } catch (ExpiredJwtException e) {
@@ -114,29 +130,32 @@ public class UserService {
         }
 
         String category = mccJwtUtil.getCategory(refreshToken);
-        if (category == null || !category.equals("refresh")) {
+        if (category == null || !category.equals(REFRESH_CATEGORY)) {
 
             return new ResponseEntity<>("Invalid Refresh Token", HttpStatus.BAD_REQUEST);
         }
 
         Boolean isExist = refreshTokenRepository.existsByRefreshToken(refreshToken);
-        if (!isExist) return new ResponseEntity<>("Invalid Refresh Token", HttpStatus.BAD_REQUEST);
+        if (!isExist) {
+
+            return new ResponseEntity<>("Invalid Refresh Token", HttpStatus.BAD_REQUEST);
+        }
 
         String username = mccJwtUtil.getUsername(refreshToken);
         String role = mccJwtUtil.getRole(refreshToken);
         String nickname = mccJwtUtil.getNickname(refreshToken);
         String profileImg = mccJwtUtil.getProfileImg(refreshToken);
 
-        String newAccessToken = mccJwtUtil.generateAccessToken(username, "access", role, nickname, profileImg);
-        String newRefreshToken = mccJwtUtil.generateRefreshToken(username, "refresh", role, nickname, profileImg);
+        String newAccessToken = mccJwtUtil.generateAccessToken(username, ACCESS_CATEGORY, role, nickname, profileImg);
+        String newRefreshToken = mccJwtUtil.generateRefreshToken(username, REFRESH_CATEGORY, role, nickname, profileImg);
 
         refreshTokenRepository.deleteByRefreshToken(refreshToken);
 
         Date newRefreshTokenExpiration = mccJwtUtil.getExpiration(newRefreshToken);
         mccJwtUtil.saveRefreshToken(username, newRefreshToken, newRefreshTokenExpiration);
 
-        String accessHeader = mccJwtUtil.createSetCookieHeader("Authorization", "BEARER_" + newAccessToken, JWT_ACCESS_EXPIRATION_TIME / 1000);
-        String refreshHeader = mccJwtUtil.createSetCookieHeader("Refresh-Token", "BEARER_" + newRefreshToken, JWT_REFRESH_EXPIRATION_TIME / 1000);
+        String accessHeader = mccJwtUtil.createSetCookieHeader(AUTHORIZATION, BEARER_PREFIX + newAccessToken, JWT_ACCESS_EXPIRATION_TIME / 1000);
+        String refreshHeader = mccJwtUtil.createSetCookieHeader(REFRESH_TOKEN, BEARER_PREFIX + newRefreshToken, JWT_REFRESH_EXPIRATION_TIME / 1000);
 
         response.addHeader("Set-Cookie", accessHeader);
         response.addHeader("Set-Cookie", refreshHeader);
@@ -150,14 +169,15 @@ public class UserService {
 
         UserEntity foundUser = userRepository.findByUsername(username);
         if (foundUser == null) {
+
             throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
         }
 
         refreshTokenRepository.deleteAllByUsername(username);
         userRepository.delete(foundUser);
 
-        deleteCookie(response, "Authorization");
-        deleteCookie(response, "Refresh-Token");
+        deleteCookie(response, AUTHORIZATION);
+        deleteCookie(response, REFRESH_TOKEN);
 
         SecurityContextHolder.clearContext();
 
@@ -165,12 +185,15 @@ public class UserService {
     }
 
     private void deleteCookie(HttpServletResponse response, String key) {
-        String cookie = key + "=;" +
-                " Path=/;" +
-                " Max-Age=0;" +
-                " HttpOnly;" +
-                " Secure;" +
-                " SameSite=None";
+
+        String cookie = ResponseCookie.from(key, "")
+                .path("/")
+                .maxAge(0)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .build()
+                .toString();
 
         response.addHeader("Set-Cookie", cookie);
     }

@@ -18,13 +18,25 @@ import java.util.Iterator;
 @Component
 public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
+    private final MccJwtUtil mccJwtUtil;
+
     @Value("${spring.jwt.access.expiration}")
     private int JWT_ACCESS_EXPIRATION_TIME;
 
     @Value("${spring.jwt.refresh.expiration}")
     private int JWT_REFRESH_EXPIRATION_TIME;
 
-    private final MccJwtUtil mccJwtUtil;
+    private static final String AUTHORIZATION = "Authorization";
+
+    private static final String REFRESH_TOKEN = "Refresh-Token";
+
+    private static final String ACCESS_CATEGORY = "access";
+
+    private static final String REFRESH_CATEGORY = "refresh";
+
+    private static final String BEARER_PREFIX = "BEARER_";
+
+    private static final String REDIRECT_URL = "https://www.mountaincc.co.kr";
 
     public CustomSuccessHandler(MccJwtUtil mccJwtUtil) {
         this.mccJwtUtil = mccJwtUtil;
@@ -40,19 +52,19 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String nickname = customUserDetails.getName();
         String profileImg = customUserDetails.getProfileImg();
 
-        String accessToken = mccJwtUtil.generateAccessToken(username, "access", role, nickname, profileImg);
-        String refreshToken = mccJwtUtil.generateRefreshToken(username, "refresh", role, nickname, profileImg);
+        String accessToken = mccJwtUtil.generateAccessToken(username, ACCESS_CATEGORY, role, nickname, profileImg);
+        String refreshToken = mccJwtUtil.generateRefreshToken(username, REFRESH_CATEGORY, role, nickname, profileImg);
 
         Date refreshTokenExpiration = mccJwtUtil.getExpiration(refreshToken);
         mccJwtUtil.saveRefreshToken(username, refreshToken, refreshTokenExpiration);
 
-        String accessHeader = mccJwtUtil.createSetCookieHeader("Authorization", "BEARER_" + accessToken, JWT_ACCESS_EXPIRATION_TIME / 1000);
-        String refreshHeader = mccJwtUtil.createSetCookieHeader("Refresh-Token", "BEARER_" + refreshToken, JWT_REFRESH_EXPIRATION_TIME / 1000);
+        String accessHeader = mccJwtUtil.createSetCookieHeader(AUTHORIZATION, BEARER_PREFIX + accessToken, JWT_ACCESS_EXPIRATION_TIME / 1000);
+        String refreshHeader = mccJwtUtil.createSetCookieHeader(REFRESH_TOKEN, BEARER_PREFIX + refreshToken, JWT_REFRESH_EXPIRATION_TIME / 1000);
 
         response.addHeader("Set-Cookie", accessHeader);
         response.addHeader("Set-Cookie", refreshHeader);
 
-        response.sendRedirect("https://www.mountaincc.co.kr");
+        response.sendRedirect(REDIRECT_URL);
     }
 
     private static String getRole(Authentication authentication) {
