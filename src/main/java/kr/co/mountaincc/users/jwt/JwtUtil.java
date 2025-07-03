@@ -113,6 +113,7 @@ public class JwtUtil {
     public String createSetCookieHeader(String key, String value, int maxAge) {
 
         return ResponseCookie.from(key, value)
+                .domain("mountaincc.co.kr")
                 .path("/")
                 .maxAge(maxAge)
                 .httpOnly(true)

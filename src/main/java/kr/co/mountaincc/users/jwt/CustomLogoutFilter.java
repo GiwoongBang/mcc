@@ -119,6 +119,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
     private void deleteCookie(HttpServletResponse response, String key) {
         String cookie = ResponseCookie.from(key, "")
+                .domain("mountaincc.co.kr")
                 .path("/")
                 .maxAge(0)
                 .httpOnly(true)
