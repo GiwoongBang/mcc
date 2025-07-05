@@ -62,7 +62,9 @@ public class SecurityConfig {
                                 "https://api.mountaincc.co.kr", // MCC Server Domain
 
                                 "http://localhost:3001", // MCC Client Local Domain(Temp)
-                                "https://mountaincc.co.kr" // MCC Client Domain
+                                "https://www.mountaincc.co.kr", // MCC Client Domain
+                                "https://mountaincc.co.kr" // MCC Client Domain(non-www)
+
                         ));
                         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                         configuration.setAllowCredentials(true);
